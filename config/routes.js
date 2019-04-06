@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const Users = require('../users/user-model.js');
-const { authenticate } = require('../auth/authenticate');
+const { authenticate, generateToken } = require('../auth/authenticate');
 
 module.exports = server => {
   server.post('/api/register', register);
@@ -33,7 +33,32 @@ function register(req, res) {
 
 function login(req, res) {
   // implement user login
-  
+  let { username, password } = req.body;
+
+  Users
+    .findBy({ username })
+    .first()
+    .then(user => {
+      if (user && bcrypt.compareSync(password, user.password)) {
+        const token = generateToken(user);
+        res
+          .status(200)
+          .json({
+            token,
+            message: `Welcome ${user.username}!`
+          });
+      }
+      else {
+        res
+          .status(401)
+          .json({ message: "Invalid credentials!" });
+      }
+    })
+    .catch(error => {
+      res
+        .status(500)
+        .json(error);
+    });
 }
 
 function getJokes(req, res) {
@@ -50,3 +75,5 @@ function getJokes(req, res) {
       res.status(500).json({ message: 'Error Fetching Jokes', error: err });
     });
 }
+
+
